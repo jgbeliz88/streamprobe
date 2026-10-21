@@ -179,5 +179,6 @@ Next.js 14 (App Router) · TypeScript · Tailwind CSS · React 18. Playback runs
 - The **header proxy** skews performance metrics (use it only to test CDN rules).
 - **dash.js 3.2** is an old API; some metrics or URL rewriting may not apply.
 - No backend persistence: everything is client-side + JSON download.
+-
 
 <!-- Prueba de comunicación con GitHub (2026-10-21 12:35) -->

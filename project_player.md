@@ -14,7 +14,7 @@ está construido, qué se ha investigado y qué queda abierto.
 - **StreamProbe** = herramienta Next.js construida en `~/Documents/Javi/Multiplayer` para
   **probar y depurar reproducción** entre engines y versiones, y así **reproducir el bug de
   multiperiod** de la app Infinity.
-- **Repo**: `github.com/JaviergomezMst/streamprobe` (se commitea directo a `main`).
+- **Repo**: `github.com/jgbeliz88/streamprobe` (ramas `dev` y `main`).
 
 ---
 
