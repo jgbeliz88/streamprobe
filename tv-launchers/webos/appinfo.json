@@ -1,0 +1,13 @@
+{
+  "id": "com.streamprobe.app",
+  "version": "1.0.0",
+  "vendor": "AgileTV",
+  "type": "web",
+  "main": "index.html",
+  "title": "StreamProbe",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "trustLevel": "default",
+  "disableBackHistoryAPI": true
+}

@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreamProbe — Player Testing Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0B0E16;
+  --sf1: #141820;
+  --sf2: #1C2030;
+  --sf3: #232B3E;
+  --bd: #252D3D;
+  --bd2: #2E3A50;
+  --tx1: #E2E8F2;
+  --tx2: #6B7A95;
+  --tx3: #3D4B63;
+  --ga: #1DB953;
+  --ga2: rgba(29,185,83,0.12);
+  --gb: #3B82F6;
+  --gb2: rgba(59,130,246,0.12);
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --err2: rgba(239,68,68,0.12);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--tx1); font-family: var(--sans); font-size: 14px; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── Header ── */
+.hdr { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; height: 50px; background: var(--sf1); border-bottom: 1px solid var(--bd); flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-weight: 600; font-size: 14px; letter-spacing: -0.02em; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ga); box-shadow: 0 0 6px var(--ga); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+.hdr-right { display: flex; align-items: center; gap: 14px; }
+.badge { font-family: var(--mono); font-size: 10px; color: var(--tx3); letter-spacing: 0.06em; }
+.mode-toggle { display: flex; background: var(--sf2); border: 1px solid var(--bd); border-radius: 6px; padding: 2px; }
+.mode-btn { padding: 5px 14px; border: none; background: transparent; color: var(--tx2); font-family: var(--sans); font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 4px; transition: all .15s; }
+.mode-btn.on { background: var(--ga); color: #fff; }
+
+/* ── Layout ── */
+.body { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Sidebar ── */
+.sidebar { width: 290px; flex-shrink: 0; background: var(--sf1); border-right: 1px solid var(--bd); display: flex; flex-direction: column; overflow: hidden; }
+.stabs { display: flex; border-bottom: 1px solid var(--bd); flex-shrink: 0; }
+.stab { flex: 1; padding: 9px; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; color: var(--tx3); border-bottom: 2px solid transparent; transition: all .15s; }
+.stab.on-a { color: var(--ga); border-color: var(--ga); }
+.stab.on-b { color: var(--gb); border-color: var(--gb); }
+.scfg { flex: 1; overflow-y: auto; }
+.ssec { padding: 14px 16px; border-bottom: 1px solid var(--bd); }
+.slbl { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); margin-bottom: 10px; }
+
+/* Engine selector */
+.eng-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.eng-btn { padding: 8px 5px; border: 1px solid var(--bd); border-radius: 6px; background: var(--sf2); color: var(--tx2); font-family: var(--mono); font-size: 10px; font-weight: 600; cursor: pointer; text-align: center; line-height: 1.4; transition: all .15s; }
+.eng-btn:hover { border-color: var(--bd2); color: var(--tx1); }
+.eng-btn.sel-a { border-color: var(--ga); color: var(--ga); background: var(--ga2); }
+.eng-btn.sel-b { border-color: var(--gb); color: var(--gb); background: var(--gb2); }
+
+/* Form */
+.fg { margin-bottom: 9px; }
+.fl { display: block; font-size: 11px; color: var(--tx2); margin-bottom: 3px; }
+.fi { width: 100%; background: var(--sf2); border: 1px solid var(--bd); border-radius: 5px; padding: 6px 9px; color: var(--tx1); font-family: var(--mono); font-size: 11px; outline: none; transition: border-color .15s; }
+.fi:focus { border-color: var(--ga); }
+.fi.b:focus { border-color: var(--gb); }
+.fi::placeholder { color: var(--tx3); }
+.fsel { width: 100%; background: var(--sf2); border: 1px solid var(--bd); border-radius: 5px; padding: 6px 9px; color: var(--tx1); font-size: 12px; outline: none; cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%236B7A95'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; padding-right: 28px; }
+.fsel:focus { border-color: var(--ga); outline: none; }
+.fnum { width: 100%; background: var(--sf2); border: 1px solid var(--bd); border-radius: 5px; padding: 6px 9px; color: var(--tx1); font-family: var(--mono); font-size: 11px; outline: none; }
+.fnum:focus { border-color: var(--ga); }
+
+/* Toggle */
+.trow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.trow-label { font-size: 12px; color: var(--tx2); }
+.tog { position: relative; display: inline-block; width: 34px; height: 18px; cursor: pointer; flex-shrink: 0; }
+.tog input { opacity: 0; width: 0; height: 0; }
+.ttrack { position: absolute; inset: 0; background: var(--sf3); border: 1px solid var(--bd2); border-radius: 9px; transition: all .2s; }
+.tog input:checked ~ .ttrack { background: var(--ga); border-color: var(--ga); }
+.tthumb { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; background: #fff; border-radius: 50%; transition: transform .2s; pointer-events: none; }
+.tog input:checked ~ .tthumb { transform: translateX(16px); }
+
+/* Headers */
+.hdr-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 7px; }
+.hdr-row { display: grid; grid-template-columns: 1fr 1fr 22px; gap: 4px; align-items: center; }
+.btn-x { width: 22px; height: 22px; background: none; border: 1px solid var(--bd); border-radius: 4px; color: var(--tx2); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.btn-x:hover { border-color: var(--err); color: var(--err); }
+
+/* Collapsible */
+.coll-hdr { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.coll-arr { font-size: 11px; color: var(--tx3); }
+.coll-body { margin-top: 10px; }
+
+/* Buttons */
+.btn { width: 100%; padding: 8px; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all .15s; font-family: var(--sans); }
+.btn-a { background: var(--ga); color: #fff; }
+.btn-a:hover { filter: brightness(1.1); }
+.btn-b { background: var(--gb); color: #fff; }
+.btn-b:hover { filter: brightness(1.1); }
+.btn-sec { background: var(--sf2); border: 1px solid var(--bd); color: var(--tx2); }
+.btn-sec:hover { color: var(--tx1); border-color: var(--bd2); }
+.btn-sm { width: auto; font-size: 11px; padding: 4px 10px; }
+.btn-gap { height: 5px; }
+
+/* Presets */
+.preset-grid { display: flex; flex-direction: column; gap: 5px; }
+.preset-btn { width: 100%; padding: 7px 10px; background: var(--sf2); border: 1px solid var(--bd); border-radius: 5px; color: var(--tx2); font-family: var(--mono); font-size: 10px; text-align: left; cursor: pointer; transition: all .15s; }
+.preset-btn:hover { border-color: var(--ga); color: var(--ga); }
+.preset-name { font-weight: 600; color: var(--tx1); margin-bottom: 1px; }
+.preset-url { font-size: 9px; color: var(--tx3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Content area ── */
+.content { flex: 1; display: flex; overflow: hidden; }
+.panels { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Player panel ── */
+.ppanel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--bd); min-width: 0; overflow: hidden; }
+.ppanel:last-child { border-right: none; }
+.phdr { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; background: var(--sf1); border-bottom: 1px solid var(--bd); flex-shrink: 0; gap: 10px; }
+.pid { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .1em; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+.pid-a { background: var(--ga2); color: var(--ga); border: 1px solid rgba(29,185,83,.3); }
+.pid-b { background: var(--gb2); color: var(--gb); border: 1px solid rgba(59,130,246,.3); }
+.pstatus { display: flex; align-items: center; gap: 6px; flex: 1; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--tx3); flex-shrink: 0; }
+.sdot.playing { background: var(--ga); animation: blink 1.5s infinite; }
+.sdot.buffering { background: var(--warn); animation: blink .5s infinite; }
+.sdot.error { background: var(--err); }
+.sdot.loading { background: var(--ga); animation: blink .8s infinite; }
+.slabel { font-family: var(--mono); font-size: 10px; color: var(--tx2); }
+.eng-tag { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+.pacts { display: flex; gap: 5px; }
+.pbtn { display: flex; align-items: center; gap: 4px; background: none; border: 1px solid var(--bd); border-radius: 4px; padding: 3px 8px; color: var(--tx2); font-size: 10px; cursor: pointer; transition: all .15s; font-family: var(--sans); white-space: nowrap; }
+.pbtn:hover { border-color: var(--bd2); color: var(--tx1); }
+.pbtn.pbtn-a:hover { border-color: var(--ga); color: var(--ga); }
+
+/* Video */
+.vwrap { background: #000; position: relative; flex-shrink: 0; }
+video { display: block; width: 100%; max-height: 38vh; background: #000; }
+.voverlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.88); font-family: var(--mono); font-size: 12px; color: var(--tx2); pointer-events: none; }
+.voverlay.gone { display: none; }
+.vov-inner { text-align: center; }
+.vov-icon { font-size: 32px; margin-bottom: 6px; color: var(--tx3); }
+
+/* Metrics */
+.mets { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--bd); border-bottom: 1px solid var(--bd); flex-shrink: 0; }
+.met { background: var(--sf1); padding: 9px 12px; }
+.met-lbl { font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); margin-bottom: 2px; }
+.met-val { font-family: var(--mono); font-size: 17px; font-weight: 600; color: var(--tx1); line-height: 1.2; }
+.met-val.good { color: var(--ga); }
+.met-val.warn { color: var(--warn); }
+.met-val.bad { color: var(--err); }
+.met-sub { font-family: var(--mono); font-size: 9px; color: var(--tx3); margin-top: 1px; }
+
+/* Log */
+.logbox { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.ltabs { display: flex; background: var(--sf1); border-bottom: 1px solid var(--bd); flex-shrink: 0; }
+.ltab { padding: 5px 12px; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; color: var(--tx3); border-bottom: 2px solid transparent; transition: all .15s; }
+.ltab.on { color: var(--tx1); border-color: var(--ga); }
+.ltab:hover { color: var(--tx2); }
+.logcontent { flex: 1; overflow-y: auto; padding: 6px 8px; font-family: var(--mono); font-size: 10px; line-height: 1.8; }
+.le { display: flex; gap: 8px; padding: 1px 0; }
+.le:hover { background: var(--sf2); }
+.lt { color: var(--tx3); flex-shrink: 0; width: 55px; }
+.ltype { flex-shrink: 0; width: 62px; }
+.ltype.info { color: var(--tx2); }
+.ltype.abr { color: var(--ga); }
+.ltype.buffer { color: var(--warn); }
+.ltype.error { color: var(--err); }
+.ltype.drm { color: #a855f7; }
+.ltype.warn { color: var(--warn); }
+.lmsg { color: var(--tx1); word-break: break-all; flex: 1; }
+.log-empty { padding: 20px; text-align: center; color: var(--tx3); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── Header ── -->
+<div class="hdr">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    StreamProbe
+  </div>
+  <div class="hdr-right">
+    <span class="badge">by AgileTV · DASH · HLS · DRM</span>
+    <div class="mode-toggle">
+      <button class="mode-btn on" id="btn-single" onclick="setMode('single')">Single</button>
+      <button class="mode-btn" id="btn-compare" onclick="setMode('compare')">Compare A/B</button>
+    </div>
+  </div>
+</div>
+
+<div class="body">
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+    <div class="stabs" id="stabs" style="display:none;">
+      <div class="stab on-a" id="stab-a" onclick="showSideTab('A')">Player A</div>
+      <div class="stab" id="stab-b" onclick="showSideTab('B')">Player B</div>
+    </div>
+    <div class="scfg">
+
+      <!-- Config A -->
+      <div id="cfg-A">
+        <div class="ssec">
+          <div class="slbl">Engine</div>
+          <div class="eng-grid">
+            <div class="eng-btn sel-a" id="eA-shaka" onclick="pickEngine('A','shaka')">Shaka<br>Player</div>
+            <div class="eng-btn" id="eA-dashjs" onclick="pickEngine('A','dashjs')">dash.js</div>
+            <div class="eng-btn" id="eA-hlsjs" onclick="pickEngine('A','hlsjs')">hls.js</div>
+            <div class="eng-btn" id="eA-native" onclick="pickEngine('A','native')">Native<br>Video</div>
+          </div>
+        </div>
+
+        <div class="ssec">
+          <div class="slbl">Stream URL</div>
+          <div class="fg">
+            <input class="fi" id="url-A" type="text" placeholder="https://..." value="https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd">
+          </div>
+          <button class="btn btn-a" id="load-A" onclick="loadStream('A')">▶ Load stream</button>
+          <div class="btn-gap"></div>
+          <button class="btn btn-sec" id="stop-A" style="display:none;" onclick="stopStream('A')">■ Stop</button>
+        </div>
+
+        <div class="ssec">
+          <div class="slbl">DRM</div>
+          <div class="trow">
+            <span class="trow-label">Enable DRM</span>
+            <label class="tog"><input type="checkbox" id="drm-A" onchange="toggleDRM('A')"><div class="ttrack"></div><div class="tthumb"></div></label>
+          </div>
+          <div id="drm-cfg-A" style="display:none;">
+            <div class="fg">
+              <label class="fl">System</label>
+              <select class="fsel" id="drmt-A" onchange="onDRMTypeChange('A')">
+                <option value="widevine">Widevine — Chrome / Firefox</option>
+                <option value="playready">PlayReady — Edge / IE</option>
+                <option value="fairplay">FairPlay — Safari</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">License server URL</label>
+              <input class="fi" id="drml-A" type="text" placeholder="https://license.server/widevine">
+            </div>
+            <div class="fg" id="cert-A" style="display:none;">
+              <label class="fl">Certificate URL (FairPlay)</label>
+              <input class="fi" id="drmcert-A" type="text" placeholder="https://...fps.cer">
+            </div>
+            <div class="slbl" style="margin-top:8px;">Custom license headers</div>
+            <div class="hdr-list" id="hdrs-A"></div>
+            <button class="btn btn-sec btn-sm" onclick="addHdr('A')">+ Add header</button>
+          </div>
+        </div>
+
+        <div class="ssec">
+          <div class="coll-hdr" onclick="toggleAdv('A')">
+            <div class="slbl" style="margin:0;">Advanced</div>
+            <span class="coll-arr" id="adv-arr-A">▸</span>
+          </div>
+          <div class="coll-body" id="adv-A" style="display:none;">
+            <div class="fg">
+              <label class="fl">Buffer goal (s)</label>
+              <input class="fnum" id="bufg-A" type="number" value="10" min="1" max="60">
+            </div>
+            <div class="fg">
+              <label class="fl">Rebuffer goal (s)</label>
+              <input class="fnum" id="rebg-A" type="number" value="2" min="0.1" max="10" step="0.1">
+            </div>
+            <div class="fg">
+              <label class="fl">Preferred audio lang</label>
+              <input class="fi" id="lang-A" type="text" placeholder="es, en, it...">
+            </div>
+            <div id="shk-A">
+              <div class="trow" style="margin-top:6px;">
+                <span class="trow-label" style="font-size:11px;">returnToEndOfLiveWindow</span>
+                <label class="tog"><input type="checkbox" id="live-A" checked><div class="ttrack"></div><div class="tthumb"></div></label>
+              </div>
+              <div class="trow">
+                <span class="trow-label" style="font-size:11px;">stalledMinimumDurationSec</span>
+                <input class="fnum" id="stall-A" type="number" value="1" min="0.1" max="10" step="0.1" style="width:60px; font-size:11px;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ssec">
+          <div class="slbl">Quick presets</div>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="applyPreset('A','shaka-demo')">
+              <div class="preset-name">Shaka DASH demo (open)</div>
+              <div class="preset-url">storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd</div>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('A','apple-hls')">
+              <div class="preset-name">Apple HLS Bipbop (open)</div>
+              <div class="preset-url">devstreaming-cdn.apple.com/.../master.m3u8</div>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('A','akamai-live')">
+              <div class="preset-name">Akamai live DASH (open)</div>
+              <div class="preset-url">livesim2.dashif.org/vod/...</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config B (compare mode) -->
+      <div id="cfg-B" style="display:none;">
+        <div class="ssec">
+          <div class="slbl">Engine</div>
+          <div class="eng-grid">
+            <div class="eng-btn" id="eB-shaka" onclick="pickEngine('B','shaka')">Shaka<br>Player</div>
+            <div class="eng-btn sel-b" id="eB-dashjs" onclick="pickEngine('B','dashjs')">dash.js</div>
+            <div class="eng-btn" id="eB-hlsjs" onclick="pickEngine('B','hlsjs')">hls.js</div>
+            <div class="eng-btn" id="eB-native" onclick="pickEngine('B','native')">Native<br>Video</div>
+          </div>
+        </div>
+
+        <div class="ssec">
+          <div class="slbl">Stream URL</div>
+          <div class="fg">
+            <input class="fi b" id="url-B" type="text" placeholder="https://..." value="https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd">
+          </div>
+          <button class="btn btn-b" id="load-B" onclick="loadStream('B')">▶ Load stream</button>
+          <div class="btn-gap"></div>
+          <button class="btn btn-sec" id="stop-B" style="display:none;" onclick="stopStream('B')">■ Stop</button>
+        </div>
+
+        <div class="ssec">
+          <div class="slbl">DRM</div>
+          <div class="trow">
+            <span class="trow-label">Enable DRM</span>
+            <label class="tog"><input type="checkbox" id="drm-B" onchange="toggleDRM('B')"><div class="ttrack"></div><div class="tthumb"></div></label>
+          </div>
+          <div id="drm-cfg-B" style="display:none;">
+            <div class="fg">
+              <label class="fl">System</label>
+              <select class="fsel" id="drmt-B" onchange="onDRMTypeChange('B')">
+                <option value="widevine">Widevine — Chrome / Firefox</option>
+                <option value="playready">PlayReady — Edge / IE</option>
+                <option value="fairplay">FairPlay — Safari</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">License server URL</label>
+              <input class="fi b" id="drml-B" type="text" placeholder="https://license.server/widevine">
+            </div>
+            <div class="fg" id="cert-B" style="display:none;">
+              <label class="fl">Certificate URL (FairPlay)</label>
+              <input class="fi b" id="drmcert-B" type="text" placeholder="https://...fps.cer">
+            </div>
+            <div class="slbl" style="margin-top:8px;">Custom license headers</div>
+            <div class="hdr-list" id="hdrs-B"></div>
+            <button class="btn btn-sec btn-sm" onclick="addHdr('B')">+ Add header</button>
+          </div>
+        </div>
+
+        <div class="ssec">
+          <div class="coll-hdr" onclick="toggleAdv('B')">
+            <div class="slbl" style="margin:0;">Advanced</div>
+            <span class="coll-arr" id="adv-arr-B">▸</span>
+          </div>
+          <div class="coll-body" id="adv-B" style="display:none;">
+            <div class="fg">
+              <label class="fl">Buffer goal (s)</label>
+              <input class="fnum" id="bufg-B" type="number" value="10" min="1" max="60">
+            </div>
+            <div class="fg">
+              <label class="fl">Rebuffer goal (s)</label>
+              <input class="fnum" id="rebg-B" type="number" value="2" min="0.1" max="10" step="0.1">
+            </div>
+            <div class="fg">
+              <label class="fl">Preferred audio lang</label>
+              <input class="fi b" id="lang-B" type="text" placeholder="es, en, it...">
+            </div>
+            <div id="shk-B">
+              <div class="trow" style="margin-top:6px;">
+                <span class="trow-label" style="font-size:11px;">returnToEndOfLiveWindow</span>
+                <label class="tog"><input type="checkbox" id="live-B" checked><div class="ttrack"></div><div class="tthumb"></div></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ssec">
+          <div class="slbl">Quick presets</div>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="applyPreset('B','dashjs-demo')">
+              <div class="preset-name">dash.js reference (open)</div>
+              <div class="preset-url">dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd</div>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('B','apple-hls')">
+              <div class="preset-name">Apple HLS Bipbop (open)</div>
+              <div class="preset-url">devstreaming-cdn.apple.com/.../master.m3u8</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /scfg -->
+  </div><!-- /sidebar -->
+
+  <!-- ── Panels ── -->
+  <div class="panels" id="panels">
+
+    <!-- Panel A -->
+    <div class="ppanel" id="panel-A">
+      <div class="phdr">
+        <div class="pid pid-a">A</div>
+        <div class="pstatus">
+          <div class="sdot" id="dot-A"></div>
+          <span class="slabel" id="slbl-A">IDLE</span>
+          <span class="eng-tag" id="etag-A" style="color:var(--ga);">SHAKA</span>
+        </div>
+        <div class="pacts">
+          <button class="pbtn pbtn-a" onclick="resetMetrics('A')">↺ Reset</button>
+          <button class="pbtn pbtn-a" onclick="exportJSON('A')">⬇ JSON</button>
+        </div>
+      </div>
+
+      <div class="vwrap">
+        <video id="vid-A" controls playsinline></video>
+        <div class="voverlay" id="ov-A">
+          <div class="vov-inner">
+            <div class="vov-icon">▶</div>
+            <div>Configure a stream and click Load</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mets">
+        <div class="met">
+          <div class="met-lbl">Join time</div>
+          <div class="met-val" id="mj-A">—</div>
+          <div class="met-sub" id="mjs-A">ms to first frame</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Buffering</div>
+          <div class="met-val" id="mb-A">—</div>
+          <div class="met-sub" id="mbs-A">events / total</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Bitrate</div>
+          <div class="met-val" id="mbr-A">—</div>
+          <div class="met-sub" id="mbw-A">est. bandwidth</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Live latency</div>
+          <div class="met-val" id="mll-A">—</div>
+          <div class="met-sub" id="mdf-A">dropped frames</div>
+        </div>
+      </div>
+
+      <div class="logbox">
+        <div class="ltabs">
+          <div class="ltab on" id="lt-A-events" onclick="switchLogTab('A','events')">Events</div>
+          <div class="ltab" id="lt-A-abr" onclick="switchLogTab('A','abr')">ABR switches</div>
+        </div>
+        <div class="logcontent" id="log-A">
+          <div class="log-empty">Waiting for stream…</div>
+        </div>
+      </div>
+    </div><!-- /panel-A -->
+
+    <!-- Panel B -->
+    <div class="ppanel" id="panel-B" style="display:none;">
+      <div class="phdr">
+        <div class="pid pid-b">B</div>
+        <div class="pstatus">
+          <div class="sdot" id="dot-B"></div>
+          <span class="slabel" id="slbl-B">IDLE</span>
+          <span class="eng-tag" id="etag-B" style="color:var(--gb);">DASH.JS</span>
+        </div>
+        <div class="pacts">
+          <button class="pbtn" onclick="resetMetrics('B')">↺ Reset</button>
+          <button class="pbtn" onclick="exportJSON('B')">⬇ JSON</button>
+        </div>
+      </div>
+
+      <div class="vwrap">
+        <video id="vid-B" controls playsinline></video>
+        <div class="voverlay" id="ov-B">
+          <div class="vov-inner">
+            <div class="vov-icon">▶</div>
+            <div>Configure a stream and click Load</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mets">
+        <div class="met">
+          <div class="met-lbl">Join time</div>
+          <div class="met-val" id="mj-B">—</div>
+          <div class="met-sub" id="mjs-B">ms to first frame</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Buffering</div>
+          <div class="met-val" id="mb-B">—</div>
+          <div class="met-sub" id="mbs-B">events / total</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Bitrate</div>
+          <div class="met-val" id="mbr-B">—</div>
+          <div class="met-sub" id="mbw-B">est. bandwidth</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Live latency</div>
+          <div class="met-val" id="mll-B">—</div>
+          <div class="met-sub" id="mdf-B">dropped frames</div>
+        </div>
+      </div>
+
+      <div class="logbox">
+        <div class="ltabs">
+          <div class="ltab on" id="lt-B-events" onclick="switchLogTab('B','events')">Events</div>
+          <div class="ltab" id="lt-B-abr" onclick="switchLogTab('B','abr')">ABR switches</div>
+        </div>
+        <div class="logcontent" id="log-B">
+          <div class="log-empty">Waiting for stream…</div>
+        </div>
+      </div>
+    </div><!-- /panel-B -->
+
+  </div><!-- /panels -->
+</div><!-- /body -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════
+//  CDN LIBRARY URLS
+// ═══════════════════════════════════════════
+const LIBS = {
+  shaka:  'https://cdn.jsdelivr.net/npm/shaka-player@4.13.25/dist/shaka-player.compiled.js',
+  dashjs: 'https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.min.js',
+  hlsjs:  'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js'
+};
+
+const ENGINE_NAMES = { shaka:'SHAKA 4.13', dashjs:'DASH.JS 4.7', hlsjs:'HLS.JS 1.5', native:'NATIVE' };
+
+const PRESETS = {
+  'shaka-demo': { engine:'shaka', url:'https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd' },
+  'apple-hls':  { engine:'hlsjs', url:'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8' },
+  'akamai-live':{ engine:'shaka', url:'https://livesim2.dashif.org/vod/testpic_2s/multi_subs.mpd' },
+  'dashjs-demo':{ engine:'dashjs', url:'https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd' }
+};
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const S = {
+  A: mkState('A'),
+  B: mkState('B')
+};
+let appMode = 'single';
+let activeSideTab = 'A';
+const loadedLibs = {};
+const hdrCounts = { A:0, B:0 };
+
+function mkState(id) {
+  return {
+    id, engine:'shaka', player:null,
+    statsIv:null, framesIv:null,
+    loadT:null, firstPlay:true, bufT:null,
+    sessionT:null, vidListeners:{},
+    logTab:'events', evLog:[], abrLog:[],
+    m: { join:null, bufN:0, bufMs:0, bitrate:0, bw:0, latency:null, dropped:0, state:'idle' }
+  };
+}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function loadLib(url) {
+  return new Promise((res,rej) => {
+    if (loadedLibs[url]) { res(); return; }
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = () => { loadedLibs[url]=true; res(); };
+    s.onerror = () => rej(new Error('Failed to load '+url));
+    document.head.appendChild(s);
+  });
+}
+
+function fmtMs(ms) {
+  if (ms===null||ms===undefined) return '—';
+  return ms<1000?`${Math.round(ms)}ms`:`${(ms/1000).toFixed(2)}s`;
+}
+function fmtBps(bps) {
+  if (!bps) return '—';
+  if (bps>=1e6) return `${(bps/1e6).toFixed(1)} Mb/s`;
+  if (bps>=1e3) return `${(bps/1e3).toFixed(0)} Kb/s`;
+  return `${bps} b/s`;
+}
+function fmtTime(d) {
+  return (d||new Date()).toISOString().substr(11,12);
+}
+function getV(id) { return document.getElementById('vid-'+id); }
+
+// ═══════════════════════════════════════════
+//  LOGGING
+// ═══════════════════════════════════════════
+function log(id, type, msg) {
+  const p = S[id];
+  const e = { time:new Date(), type, msg };
+  p.evLog.push(e);
+  if (type==='abr') p.abrLog.push(e);
+  renderLog(id);
+}
+
+function renderLog(id) {
+  const p = S[id];
+  const el = document.getElementById('log-'+id);
+  const arr = p.logTab==='abr' ? p.abrLog : p.evLog;
+  if (!arr.length) {
+    el.innerHTML = `<div class="log-empty">${p.logTab==='abr'?'No ABR switches yet':'Waiting for stream…'}</div>`;
+    return;
+  }
+  const slice = arr.slice(-300);
+  el.innerHTML = slice.map(e=>`<div class="le"><span class="lt">${fmtTime(e.time)}</span><span class="ltype ${e.type}">${e.type.toUpperCase()}</span><span class="lmsg">${e.msg}</span></div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+//  METRICS RENDER
+// ═══════════════════════════════════════════
+function renderMets(id) {
+  const m = S[id].m;
+
+  // Join time
+  const jv = document.getElementById('mj-'+id);
+  if (m.join!==null) {
+    jv.textContent = fmtMs(m.join);
+    jv.className = 'met-val '+(m.join<800?'good':m.join<3000?'':'warn');
+  } else { jv.textContent='—'; jv.className='met-val'; }
+
+  // Buffering
+  const bv = document.getElementById('mb-'+id);
+  const bs = document.getElementById('mbs-'+id);
+  bv.textContent = m.bufN;
+  bv.className = 'met-val '+(m.bufN===0?'good':m.bufN<3?'warn':'bad');
+  bs.textContent = m.bufN>0 ? `${fmtMs(m.bufMs)} total` : 'no stalls';
+
+  // Bitrate
+  document.getElementById('mbr-'+id).textContent = fmtBps(m.bitrate);
+  document.getElementById('mbw-'+id).textContent = 'bw: '+fmtBps(m.bw);
+
+  // Latency / frames
+  const lv = document.getElementById('mll-'+id);
+  if (m.latency!==null && m.latency>0) {
+    lv.textContent = m.latency.toFixed(1)+'s';
+    lv.className = 'met-val '+(m.latency<5?'good':m.latency<15?'warn':'bad');
+  } else {
+    lv.textContent = m.latency===0?'0.0s':'VOD';
+    lv.className = 'met-val';
+  }
+  document.getElementById('mdf-'+id).textContent = m.dropped+' dropped';
+}
+
+function setSt(id, st) {
+  S[id].m.state = st;
+  document.getElementById('dot-'+id).className = 'sdot '+st;
+  document.getElementById('slbl-'+id).textContent = st.toUpperCase();
+}
+
+// ═══════════════════════════════════════════
+//  VIDEO ELEMENT LISTENERS
+// ═══════════════════════════════════════════
+function attachVidListeners(id) {
+  const v = getV(id); const p = S[id];
+  const L = p.vidListeners;
+  if (L._w) v.removeEventListener('waiting',L._w);
+  if (L._pl) v.removeEventListener('playing',L._pl);
+  if (L._pa) v.removeEventListener('pause',L._pa);
+  if (L._e) v.removeEventListener('ended',L._e);
+
+  L._w = () => {
+    if (!p.bufT) {
+      p.bufT = Date.now();
+      p.m.bufN++;
+      setSt(id,'buffering');
+      log(id,'buffer',`Buffering started — event #${p.m.bufN}`);
+    }
+  };
+  L._pl = () => {
+    if (p.firstPlay && p.loadT) {
+      p.m.join = Date.now()-p.loadT;
+      p.firstPlay = false;
+      log(id,'info',`First frame — join time: ${fmtMs(p.m.join)}`);
+      document.getElementById('ov-'+id).classList.add('gone');
+    }
+    if (p.bufT) {
+      const d = Date.now()-p.bufT;
+      p.m.bufMs += d;
+      p.bufT = null;
+      log(id,'buffer',`Buffering ended — duration: ${fmtMs(d)}`);
+    }
+    setSt(id,'playing');
+  };
+  L._pa = () => setSt(id,'paused');
+  L._e  = () => { setSt(id,'idle'); log(id,'info','Stream ended'); };
+
+  v.addEventListener('waiting',L._w);
+  v.addEventListener('playing',L._pl);
+  v.addEventListener('pause',L._pa);
+  v.addEventListener('ended',L._e);
+}
+
+function startFramePoll(id) {
+  const p = S[id]; const v = getV(id);
+  if (p.framesIv) clearInterval(p.framesIv);
+  p.framesIv = setInterval(() => {
+    const q = v.getVideoPlaybackQuality?v.getVideoPlaybackQuality():null;
+    if (q) p.m.dropped = q.droppedVideoFrames;
+    renderMets(id);
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════
+//  HELPER: read DRM headers from UI
+// ═══════════════════════════════════════════
+function getHdrs(id) {
+  const h={};
+  for (let i=0;i<hdrCounts[id];i++) {
+    const k=document.getElementById(`hk-${id}-${i}`);
+    const v=document.getElementById(`hv-${id}-${i}`);
+    if (k&&v&&k.value.trim()) h[k.value.trim()]=v.value.trim();
+  }
+  return h;
+}
+
+// ═══════════════════════════════════════════
+//  SHAKA PLAYER
+// ═══════════════════════════════════════════
+async function initShaka(id) {
+  const p = S[id]; const v = getV(id);
+  log(id,'info','Loading Shaka Player…');
+  await loadLib(LIBS.shaka);
+
+  shaka.polyfill.installAll();
+  if (!shaka.Player.isBrowserSupported()) {
+    log(id,'error','Browser not supported by Shaka Player'); return;
+  }
+
+  const player = new shaka.Player();
+  await player.attach(v);
+  p.player = player;
+
+  const bufG  = parseFloat(document.getElementById('bufg-'+id).value)||10;
+  const rebG  = parseFloat(document.getElementById('rebg-'+id).value)||2;
+  const langE = document.getElementById('lang-'+id); const lang = langE?langE.value.trim():'';
+  const liveW = document.getElementById('live-'+id); 
+  const stallD = document.getElementById('stall-'+id);
+
+  const cfg = {
+    streaming: {
+      bufferingGoal: bufG,
+      rebufferingGoal: rebG,
+      returnToEndOfLiveWindowWhenOutside: liveW?liveW.checked:true,
+      stallEnabled: true,
+      stallThreshold: stallD?parseFloat(stallD.value)||1:1
+    }
+  };
+  if (lang) cfg.preferredAudioLanguage = lang;
+
+  // DRM
+  if (document.getElementById('drm-'+id).checked) {
+    const dt  = document.getElementById('drmt-'+id).value;
+    const lu  = document.getElementById('drml-'+id).value;
+    const cu  = document.getElementById('drmcert-'+id)?.value||'';
+    const hdrs = getHdrs(id);
+    cfg.drm = { servers:{} };
+    if (dt==='widevine') {
+      cfg.drm.servers['com.widevine.alpha'] = lu;
+      if (Object.keys(hdrs).length) cfg.drm.advanced = {'com.widevine.alpha':{headers:hdrs}};
+    } else if (dt==='playready') {
+      cfg.drm.servers['com.microsoft.playready'] = lu;
+    } else if (dt==='fairplay') {
+      cfg.drm.servers['com.apple.fps.1_0'] = lu;
+      if (cu) cfg.drm.advanced = {'com.apple.fps.1_0':{serverCertificateUri:cu}};
+    }
+    log(id,'drm',`DRM: ${dt.toUpperCase()} → ${lu}`);
+  }
+
+  player.configure(cfg);
+
+  player.addEventListener('error', e => {
+    log(id,'error',`Shaka [${e.detail.code}]: ${e.detail.message||'unknown'}`);
+    setSt(id,'error');
+  });
+  player.addEventListener('adaptation', () => {
+    const t = player.getVariantTracks().find(t=>t.active);
+    if (t) {
+      const prev = p.m.bitrate;
+      p.m.bitrate = t.bandwidth;
+      const dir = t.bandwidth>prev?'↑':'↓';
+      log(id,'abr',`ABR ${dir} ${fmtBps(prev)} → ${fmtBps(t.bandwidth)} [${t.width||'?'}×${t.height||'?'}]`);
+    }
+  });
+
+  p.statsIv = setInterval(() => {
+    const st = player.getStats();
+    p.m.bw = st.estimatedBandwidth||0;
+    if (st.streamBandwidth) p.m.bitrate = st.streamBandwidth;
+    if (st.liveLatency!==undefined) p.m.latency = st.liveLatency;
+    if (st.droppedFrames) p.m.dropped = st.droppedFrames;
+    renderMets(id);
+  }, 1000);
+
+  const url = document.getElementById('url-'+id).value.trim();
+  log(id,'info','Loading manifest: '+url);
+  try {
+    await player.load(url);
+    const tracks = player.getVariantTracks();
+    log(id,'info',`Manifest loaded — ${tracks.length} variants`);
+    const active = tracks.find(t=>t.active);
+    if (active) { p.m.bitrate = active.bandwidth; renderMets(id); }
+  } catch(e) {
+    log(id,'error','Load failed: '+e.message);
+    setSt(id,'error');
+    showLoadBtn(id);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  DASH.JS
+// ═══════════════════════════════════════════
+async function initDashjs(id) {
+  const p = S[id]; const v = getV(id);
+  log(id,'info','Loading dash.js…');
+  await loadLib(LIBS.dashjs);
+
+  const player = dashjs.MediaPlayer().create();
+  p.player = player;
+  player.initialize(v, null, false);
+
+  const bufG = parseFloat(document.getElementById('bufg-'+id).value)||10;
+  player.updateSettings({
+    streaming: {
+      delay: { liveDelay:4 },
+      liveCatchup: { enabled:true },
+      buffer: { bufferTimeAtTopQuality:bufG, bufferTimeDefault:bufG }
+    }
+  });
+
+  if (document.getElementById('drm-'+id).checked) {
+    const dt  = document.getElementById('drmt-'+id).value;
+    const lu  = document.getElementById('drml-'+id).value;
+    const hdrs = getHdrs(id);
+    const pd = {};
+    if (dt==='widevine')   pd['com.widevine.alpha']   = { serverURL:lu, httpRequestHeaders:hdrs };
+    if (dt==='playready')  pd['com.microsoft.playready'] = { serverURL:lu, httpRequestHeaders:hdrs };
+    if (dt==='fairplay')   { pd['com.apple.fps'] = { serverURL:lu }; log(id,'warn','FairPlay with dash.js: use Native engine in Safari'); }
+    player.setProtectionData(pd);
+    log(id,'drm',`DRM: ${dt.toUpperCase()} → ${lu}`);
+  }
+
+  player.on(dashjs.MediaPlayer.events.ERROR, e => {
+    log(id,'error',`dash.js: ${JSON.stringify(e.error||e.event||'unknown')}`);
+    setSt(id,'error');
+  });
+  player.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, e => {
+    if (e.mediaType!=='video') return;
+    try {
+      const brs = player.getBitrateInfoListFor('video');
+      const prev = brs[e.oldQuality]; const curr = brs[e.newQuality];
+      if (prev&&curr) {
+        const dir = curr.bitrate>prev.bitrate?'↑':'↓';
+        log(id,'abr',`ABR ${dir} ${fmtBps(prev.bitrate)} → ${fmtBps(curr.bitrate)} [${curr.width||'?'}×${curr.height||'?'}]`);
+        p.m.bitrate = curr.bitrate;
+      }
+    } catch(_){}
+  });
+  player.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, () => log(id,'info','Manifest loaded'));
+  player.on(dashjs.MediaPlayer.events.BUFFER_EMPTY,  () => log(id,'buffer','Buffer empty'));
+  player.on(dashjs.MediaPlayer.events.BUFFER_LOADED, () => log(id,'info','Buffer loaded'));
+
+  p.statsIv = setInterval(() => {
+    try {
+      const q = player.getQualityFor('video');
+      const brs = player.getBitrateInfoListFor?player.getBitrateInfoListFor('video'):null;
+      if (brs&&brs[q]) p.m.bitrate = brs[q].bitrate;
+      const avg = player.getAverageThroughput?player.getAverageThroughput('video'):null;
+      if (avg&&avg>0) p.m.bw = avg*1000;
+      renderMets(id);
+    } catch(_){}
+  }, 1000);
+
+  const url = document.getElementById('url-'+id).value.trim();
+  log(id,'info','Attaching source: '+url);
+  player.attachSource(url);
+}
+
+// ═══════════════════════════════════════════
+//  HLS.JS
+// ═══════════════════════════════════════════
+async function initHlsjs(id) {
+  const p = S[id]; const v = getV(id);
+  const url = document.getElementById('url-'+id).value.trim();
+  log(id,'info','Loading hls.js…');
+  await loadLib(LIBS.hlsjs);
+
+  if (!Hls.isSupported()) {
+    if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      log(id,'info','Using native HLS (Safari)');
+      v.src = url; v.load();
+      return;
+    }
+    log(id,'error','HLS not supported in this browser'); setSt(id,'error'); showLoadBtn(id); return;
+  }
+
+  const bufG = parseFloat(document.getElementById('bufg-'+id).value)||30;
+  const hlsCfg = { maxBufferLength:bufG, maxMaxBufferLength:120, startLevel:-1, enableWorker:true };
+
+  if (document.getElementById('drm-'+id).checked) {
+    const dt = document.getElementById('drmt-'+id).value;
+    if (dt==='fairplay') {
+      log(id,'warn','FairPlay + hls.js: use Native engine in Safari for FairPlay');
+    } else if (dt==='widevine') {
+      hlsCfg.emeEnabled = true;
+      hlsCfg.widevineLicenseUrl = document.getElementById('drml-'+id).value;
+      log(id,'drm','Widevine via EME enabled');
+    }
+  }
+
+  const hls = new Hls(hlsCfg);
+  p.player = hls;
+  hls.loadSource(url);
+  hls.attachMedia(v);
+
+  hls.on(Hls.Events.MANIFEST_PARSED, (ev,d) => {
+    log(id,'info',`Manifest parsed — ${d.levels.length} levels`);
+    v.play().catch(()=>{});
+  });
+  hls.on(Hls.Events.LEVEL_SWITCHED, (ev,d) => {
+    const l = hls.levels[d.level];
+    const prev = p.m.bitrate; p.m.bitrate = l.bitrate;
+    const dir = l.bitrate>prev?'↑':'↓';
+    log(id,'abr',`ABR ${dir} level ${d.level} — ${fmtBps(l.bitrate)} [${l.width||'?'}×${l.height||'?'}]`);
+  });
+  hls.on(Hls.Events.ERROR, (ev,d) => {
+    if (d.fatal) {
+      log(id,'error',`hls.js fatal: ${d.type}/${d.details}`);
+      setSt(id,'error');
+      if (d.type===Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+      else if (d.type===Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+    } else {
+      log(id,'warn',`hls.js: ${d.details}`);
+    }
+  });
+  hls.on(Hls.Events.FRAG_BUFFERED, () => {
+    p.m.bw = hls.bandwidthEstimate||0;
+    renderMets(id);
+  });
+
+  p.statsIv = setInterval(() => {
+    p.m.bw = hls.bandwidthEstimate||0;
+    renderMets(id);
+  }, 1000);
+
+  log(id,'info','Loading source: '+url);
+}
+
+// ═══════════════════════════════════════════
+//  NATIVE VIDEO
+// ═══════════════════════════════════════════
+function initNative(id) {
+  const v = getV(id);
+  const url = document.getElementById('url-'+id).value.trim();
+  log(id,'info','Native video: '+url);
+  v.src = url;
+  v.load();
+  v.play().catch(e => log(id,'warn','Autoplay blocked: '+e.message));
+}
+
+// ═══════════════════════════════════════════
+//  LOAD / STOP
+// ═══════════════════════════════════════════
+async function loadStream(id) {
+  const p = S[id];
+  const url = document.getElementById('url-'+id).value.trim();
+  if (!url) { log(id,'error','No URL specified'); return; }
+  if (p.player) stopStream(id);
+
+  // Reset
+  p.m.join=null; p.m.bufN=0; p.m.bufMs=0;
+  p.m.bitrate=0; p.m.bw=0; p.m.latency=null; p.m.dropped=0;
+  p.firstPlay=true; p.bufT=null;
+  p.loadT = Date.now(); p.sessionT = Date.now();
+
+  document.getElementById('load-'+id).style.display='none';
+  document.getElementById('stop-'+id).style.display='block';
+  setSt(id,'loading');
+  renderMets(id);
+  attachVidListeners(id);
+  startFramePoll(id);
+
+  try {
+    if (p.engine==='shaka')  await initShaka(id);
+    else if (p.engine==='dashjs') await initDashjs(id);
+    else if (p.engine==='hlsjs')  await initHlsjs(id);
+    else initNative(id);
+  } catch(e) {
+    log(id,'error','Init failed: '+e.message);
+    setSt(id,'error');
+    showLoadBtn(id);
+  }
+}
+
+function stopStream(id) {
+  const p = S[id]; const v = getV(id);
+  if (p.statsIv)  { clearInterval(p.statsIv);  p.statsIv=null; }
+  if (p.framesIv) { clearInterval(p.framesIv); p.framesIv=null; }
+  try {
+    if (p.player) {
+      if (p.engine==='shaka'  && p.player.destroy) p.player.destroy();
+      else if (p.engine==='dashjs' && p.player.reset) p.player.reset();
+      else if (p.engine==='hlsjs'  && p.player.destroy) p.player.destroy();
+    }
+  } catch(_) {}
+  p.player=null;
+  v.removeAttribute('src'); v.load();
+  document.getElementById('ov-'+id).classList.remove('gone');
+  showLoadBtn(id);
+  setSt(id,'idle');
+  log(id,'info','Stream stopped');
+}
+
+function showLoadBtn(id) {
+  document.getElementById('load-'+id).style.display='block';
+  document.getElementById('stop-'+id).style.display='none';
+}
+
+// ═══════════════════════════════════════════
+//  RESET + EXPORT
+// ═══════════════════════════════════════════
+function resetMetrics(id) {
+  const p = S[id];
+  p.m = { join:null, bufN:0, bufMs:0, bitrate:0, bw:0, latency:null, dropped:0, state:p.m.state };
+  p.firstPlay=true; p.loadT=null; p.bufT=null;
+  p.evLog=[]; p.abrLog=[];
+  renderMets(id); renderLog(id);
+  log(id,'info','Metrics reset');
+}
+
+function exportJSON(id) {
+  const p = S[id];
+  const data = {
+    timestamp: new Date().toISOString(),
+    engine: ENGINE_NAMES[p.engine],
+    url: document.getElementById('url-'+id).value,
+    metrics: p.m,
+    abrSwitches: p.abrLog.map(e=>({time:e.time.toISOString(),msg:e.msg})),
+    events: p.evLog.map(e=>({time:e.time.toISOString(),type:e.type,msg:e.msg}))
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `streamprobe_${id}_${Date.now()}.json`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════
+//  UI INTERACTIONS
+// ═══════════════════════════════════════════
+function pickEngine(id, eng) {
+  S[id].engine = eng;
+  ['shaka','dashjs','hlsjs','native'].forEach(e => {
+    const btn = document.getElementById(`e${id}-${e}`);
+    if (btn) btn.className = 'eng-btn'+(eng===e?` sel-${id.toLowerCase()}`:'');
+  });
+  const cls = id==='A'?'var(--ga)':'var(--gb)';
+  const et = document.getElementById('etag-'+id);
+  et.textContent = ENGINE_NAMES[eng];
+  et.style.color = cls;
+  const shkx = document.getElementById('shk-'+id);
+  if (shkx) shkx.style.display = eng==='shaka'?'block':'none';
+}
+
+function toggleDRM(id) {
+  const on = document.getElementById('drm-'+id).checked;
+  document.getElementById('drm-cfg-'+id).style.display = on?'block':'none';
+}
+
+function onDRMTypeChange(id) {
+  const t = document.getElementById('drmt-'+id).value;
+  const cert = document.getElementById('cert-'+id);
+  if (cert) cert.style.display = t==='fairplay'?'block':'none';
+}
+
+function addHdr(id) {
+  const i = hdrCounts[id]++;
+  const list = document.getElementById('hdrs-'+id);
+  const row = document.createElement('div');
+  row.className='hdr-row'; row.id=`hr-${id}-${i}`;
+  row.innerHTML=`<input type="text" class="fi" id="hk-${id}-${i}" placeholder="X-Header" style="font-size:10px;padding:4px 7px"><input type="text" class="fi" id="hv-${id}-${i}" placeholder="value" style="font-size:10px;padding:4px 7px"><button class="btn-x" onclick="document.getElementById('hr-${id}-${i}').remove()">×</button>`;
+  list.appendChild(row);
+}
+
+function toggleAdv(id) {
+  const el=document.getElementById('adv-'+id);
+  const arr=document.getElementById('adv-arr-'+id);
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  arr.textContent=open?'▸':'▾';
+}
+
+function switchLogTab(id, tab) {
+  S[id].logTab = tab;
+  ['events','abr'].forEach(t=>{
+    const el=document.getElementById(`lt-${id}-${t}`);
+    if(el) el.className='ltab'+(tab===t?' on':'');
+  });
+  renderLog(id);
+}
+
+function applyPreset(id, key) {
+  const pr = PRESETS[key]; if (!pr) return;
+  document.getElementById('url-'+id).value = pr.url;
+  pickEngine(id, pr.engine);
+  log(id,'info',`Preset applied: ${key}`);
+}
+
+// ═══════════════════════════════════════════
+//  MODE SWITCHING
+// ═══════════════════════════════════════════
+function setMode(mode) {
+  appMode = mode;
+  document.getElementById('btn-single').className  = 'mode-btn'+(mode==='single'?' on':'');
+  document.getElementById('btn-compare').className = 'mode-btn'+(mode==='compare'?' on':'');
+  const panB = document.getElementById('panel-B');
+  const stabs = document.getElementById('stabs');
+  if (mode==='compare') {
+    panB.style.display='flex';
+    stabs.style.display='flex';
+    document.getElementById('cfg-A').style.display='none';
+    document.getElementById('cfg-B').style.display='none';
+    showSideTab('A');
+  } else {
+    panB.style.display='none';
+    stabs.style.display='none';
+    document.getElementById('cfg-A').style.display='block';
+    document.getElementById('cfg-B').style.display='none';
+    if (S.B.player) stopStream('B');
+  }
+}
+
+function showSideTab(id) {
+  activeSideTab = id;
+  document.getElementById('cfg-A').style.display=id==='A'?'block':'none';
+  document.getElementById('cfg-B').style.display=id==='B'?'block':'none';
+  document.getElementById('stab-a').className='stab'+(id==='A'?' on-a':'');
+  document.getElementById('stab-b').className='stab'+(id==='B'?' on-b':'');
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+pickEngine('A','shaka');
+pickEngine('B','dashjs');
+renderMets('A'); renderMets('B');
+log('A','info','StreamProbe ready · Shaka Player 4.13 selected');
+log('B','info','StreamProbe ready · dash.js 4.7 selected');
+</script>
+</body>
+</html>

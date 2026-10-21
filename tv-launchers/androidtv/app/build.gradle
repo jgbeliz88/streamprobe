@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.streamprobe.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.streamprobe.app'
+        // API 21 keeps old Android TV boxes and Fire TV sticks in scope — the
+        // point of this harness is testing on weak/old devices.
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildTypes {
+        debug {
+            // Debug builds are signed with the local debug keystore, which is
+            // all `adb install` needs — no release keys to manage.
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

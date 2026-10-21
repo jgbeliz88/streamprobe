@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen banner (Android TV wants 320x180). Kept as a vector so the
+     repo carries no binary asset: dark ground plus a signal/bitrate motif in
+     the StreamProbe green. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+
+    <path
+        android:fillColor="#0B0E16"
+        android:pathData="M0,0h320v180H0z" />
+
+    <!-- live dot -->
+    <path
+        android:fillColor="#1DB953"
+        android:pathData="M40,44a9,9 0 1,0 0.1,0z" />
+
+    <!-- ascending bars: a bitrate ladder -->
+    <path
+        android:fillColor="#1DB953"
+        android:pathData="M40,120h16v22H40z" />
+    <path
+        android:fillColor="#1DB953"
+        android:pathData="M64,104h16v38H64z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M88,86h16v56H88z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M112,68h16v74h-16z" />
+    <path
+        android:fillColor="#2E3A50"
+        android:pathData="M136,96h16v46h-16z" />
+
+    <!-- baseline -->
+    <path
+        android:fillColor="#252D3D"
+        android:pathData="M40,146h240v3H40z" />
+</vector>

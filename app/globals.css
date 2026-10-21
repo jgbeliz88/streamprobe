@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background: #0b0e16;
+  color: #e2e8f2;
+  /* Respect the notch / home indicator on iPhone (viewport-fit=cover). */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Phones: let the PAGE scroll. Nested scroll containers inside a locked body
+   are unusable on iOS, so the shell grows and the document scrolls instead. */
+@media (max-width: 767px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Desktop: fixed app-shell, panels scroll on their own. */
+@media (min-width: 768px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+/* ── Remote-control (D-pad) navigation ──
+   On a TV the only way around the UI is moving focus, so focus must be loud and
+   always visible. Both :focus-visible and :focus are set because older TV
+   WebViews don't implement :focus-visible. */
+:focus {
+  outline: 3px solid #1db953;
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+  /* Pointer users: don't show the ring on plain clicks. */
+  outline: none;
+}
+:focus-visible {
+  outline: 3px solid #1db953;
+  outline-offset: 2px;
+}
+/* Buttons/inputs also lift out of the surrounding surface when focused, so the
+   current position reads from across the room. */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  background-color: rgba(29, 185, 83, 0.14);
+  border-radius: 4px;
+}
+/* Never let a focused control sit half off-screen inside a scrolling panel. */
+* {
+  scroll-margin: 12px;
+}
+
+/* TV text fields: locked (dashed ring) = just passing through, no keyboard;
+   press OK to start editing, which drops the lock and shows a solid ring. */
+[data-tv-locked]:focus,
+[data-tv-locked]:focus-visible {
+  outline-style: dashed;
+}
+
+/* Touch devices: keep momentum scrolling inside panels and stop iOS Safari
+   from auto-zooming when a control smaller than 16px gets focus. */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  .fsel {
+    background-position: right 9px center;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2e3a50;
+  border-radius: 3px;
+}
+
+/* Native select arrow */
+.fsel {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%236B7A95'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  padding-right: 28px;
+}
+
+/* Hide the native <video> fullscreen button: the player has its own control
+   that fullscreens the container (so overlays like the HUD stay visible).
+   controlsList="nofullscreen" isn't honored reliably, so remove it via CSS. */
+video::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}

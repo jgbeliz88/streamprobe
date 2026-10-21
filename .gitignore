@@ -1,0 +1,18 @@
+/node_modules
+/.next
+/out
+/build
+next-env.d.ts
+npm-debug.log*
+.DS_Store
+*.tsbuildinfo
+.env*.local
+
+# Paquetes de TV generados por ares-package / tizen package (regenerables
+# desde tv-launchers/<plataforma>/ o con la pestaña Deploy TV).
+/tv-launchers/dist
+*.ipk
+*.wgt
+
+# Trazas capturadas desde TV/móvil (POST /api/traces)
+/traces

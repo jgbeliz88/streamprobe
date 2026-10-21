@@ -1,0 +1,13 @@
+{
+  "id": "com.goya.acano2",
+  "version": "1.0.0",
+  "vendor": "AgileTV",
+  "type": "web",
+  "main": "index.html",
+  "title": "Goya acano2",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "trustLevel": "netcast",
+  "disableBackHistoryAPI": true
+}

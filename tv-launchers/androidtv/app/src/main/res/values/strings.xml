@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StreamProbe</string>
+    <!-- Points at the dev server running on your PC. The Deploy TV tab rewrites
+         this line before building, so keep it on one line. -->
+    <string name="dev_server_url">http://192.168.0.136:3001</string>
+</resources>

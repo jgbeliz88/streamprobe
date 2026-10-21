@@ -1,0 +1,19 @@
+// Root build file. No dependencies of our own — the wrapper app is plain
+// framework code (WebView), so there is nothing to pull from Maven beyond the
+// Android Gradle plugin itself.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.5.2'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
