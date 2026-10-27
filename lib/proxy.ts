@@ -1,4 +1,5 @@
 import type { NetOverrides } from "./engines/types";
+import { apiBase } from "./apiBase";
 
 export function hasNetOverrides(net?: NetOverrides): boolean {
   if (!net) return false;
@@ -32,7 +33,7 @@ export function proxifyUrl(url: string, net?: NetOverrides): string {
   if (net.userAgent.trim()) qs.set("ua", net.userAgent.trim());
   const h = extraHeaderParam(net);
   if (h) qs.set("h", h);
-  return `/api/proxy?${qs.toString()}`;
+  return `${apiBase()}/api/proxy?${qs.toString()}`;
 }
 
 /**
@@ -51,7 +52,7 @@ export function proxifyAlways(url: string, net?: NetOverrides): string {
   if (net?.userAgent.trim()) qs.set("ua", net.userAgent.trim());
   const h = net ? extraHeaderParam(net) : "";
   if (h) qs.set("h", h);
-  return `/api/proxy?${qs.toString()}`;
+  return `${apiBase()}/api/proxy?${qs.toString()}`;
 }
 
 /**

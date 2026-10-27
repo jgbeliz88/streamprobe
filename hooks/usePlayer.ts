@@ -28,6 +28,7 @@ import type {
   PlayerState,
   TrackInfo,
 } from "@/lib/engines/types";
+import { apiUrl } from "@/lib/apiBase";
 
 export interface LogEntry {
   time: Date;
@@ -628,7 +629,7 @@ export function usePlayer(
       // A TV has nowhere to download to: save it on the Mac, beside the traces.
       try {
         const label = `${deviceLabel()}_${ENGINES[engine].tag}_${panelId}`;
-        const res = await fetch(`/api/traces?label=${encodeURIComponent(label)}`, {
+        const res = await fetch(apiUrl(`/api/traces?label=${encodeURIComponent(label)}`), {
           method: "POST",
           headers: { "content-type": "text/html" },
           body: html,
@@ -650,7 +651,7 @@ export function usePlayer(
     async (engine: EngineId, url: string, opts: { live?: boolean } = {}) => {
       if (!opts.live) log("info", "Enviando trazas al Mac…");
       try {
-        const res = await fetch(opts.live ? "/api/traces?live=1" : "/api/traces", {
+        const res = await fetch(apiUrl(opts.live ? "/api/traces?live=1" : "/api/traces"), {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(buildDump(engine, url)),

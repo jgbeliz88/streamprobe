@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { buildLaunchUrl } from "@/lib/deepLink";
+import { buildLaunchUrl, type LaunchDrm } from "@/lib/deepLink";
+import type { DrmSystem } from "@/lib/engines/types";
 
 /** Interval baked into a TV's launch URL when auto-trace is ticked. */
 const AUTOTRACE_DEFAULT = 30;
@@ -20,6 +21,48 @@ interface SavedDevice {
   autoplay?: boolean;
   /** Start with auto-trace on: the TV keeps its live trace on the Mac current. */
   autotrace?: boolean;
+  /** DRM to preload, so the license never has to be typed with the remote. */
+  drmSystem?: DrmSystem;
+  licenseUrl?: string;
+  certUrl?: string;
+  /** License headers, one `Name: value` per line. */
+  drmHeaders?: string;
+}
+
+/** The DRM fields a launch URL is built from (form or saved device). */
+interface DrmFields {
+  drmSystem?: DrmSystem;
+  licenseUrl?: string;
+  certUrl?: string;
+  drmHeaders?: string;
+}
+
+const DRM_SYSTEMS: { id: DrmSystem; label: string }[] = [
+  { id: "widevine", label: "Widevine" },
+  { id: "playready", label: "PlayReady" },
+  { id: "fairplay", label: "FairPlay" },
+];
+
+/** `Name: value` lines → header map (blank or colon-less lines are skipped). */
+function parseHeaderLines(text?: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of (text ?? "").split("\n")) {
+    const i = line.indexOf(":");
+    if (i <= 0) continue;
+    const k = line.slice(0, i).trim();
+    if (k) out[k] = line.slice(i + 1).trim();
+  }
+  return out;
+}
+
+function toLaunchDrm(d: DrmFields): LaunchDrm | undefined {
+  if (!d.drmSystem || !d.licenseUrl?.trim()) return undefined;
+  return {
+    system: d.drmSystem,
+    licenseUrl: d.licenseUrl,
+    certUrl: d.certUrl,
+    headers: parseHeaderLines(d.drmHeaders),
+  };
 }
 
 interface Tools {
@@ -87,6 +130,10 @@ export default function DeployPanel() {
   const [macHost, setMacHost] = useState("");
   const [deviceName, setDeviceName] = useState("lgtv");
   const [webosNetcast, setWebosNetcast] = useState(false);
+  // Off = the UI is packaged inside the app (file://), the only way the TV gives
+  // DRM. On = old launcher that redirects to http://<mac>: reload picks up UI
+  // changes, but no DRM.
+  const [webosHosted, setWebosHosted] = useState(false);
   const [securityProfile, setSecurityProfile] = useState("");
   const [tools, setTools] = useState<Tools | null>(null);
   const [devices, setDevices] = useState<SavedDevice[]>([]);
@@ -94,6 +141,10 @@ export default function DeployPanel() {
   const [streamUrl, setStreamUrl] = useState("");
   const [autoplay, setAutoplay] = useState(true);
   const [autotrace, setAutotrace] = useState(false);
+  const [drmSystem, setDrmSystem] = useState<DrmSystem | "">("");
+  const [licenseUrl, setLicenseUrl] = useState("");
+  const [certUrl, setCertUrl] = useState("");
+  const [drmHeaders, setDrmHeaders] = useState("");
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState("");
   const [browserUrl, setBrowserUrl] = useState("");
@@ -128,14 +179,28 @@ export default function DeployPanel() {
   };
 
   /** The URL to bake into a device's wrapper: dev server + its own config. */
-  const launchUrlFor = (d: { streamUrl?: string; autoplay?: boolean; autotrace?: boolean }) =>
+  const launchUrlFor = (
+    d: { streamUrl?: string; autoplay?: boolean; autotrace?: boolean } & DrmFields
+  ) =>
     macHost
       ? buildLaunchUrl(macHost, {
           streamUrl: d.streamUrl,
           autoplay: d.autoplay,
           autotrace: d.autotrace ? AUTOTRACE_DEFAULT : undefined,
+          drm: toLaunchDrm(d),
         })
       : "";
+
+  /** The form's own settings, as a launch-URL source. */
+  const formFields = {
+    streamUrl,
+    autoplay,
+    autotrace,
+    drmSystem: drmSystem || undefined,
+    licenseUrl,
+    certUrl,
+    drmHeaders,
+  };
 
   const saveDevice = () => {
     if (!tvIp.trim()) return;
@@ -151,6 +216,10 @@ export default function DeployPanel() {
         streamUrl: streamUrl.trim() || undefined,
         autoplay,
         autotrace,
+        drmSystem: drmSystem || undefined,
+        licenseUrl: licenseUrl.trim() || undefined,
+        certUrl: certUrl.trim() || undefined,
+        drmHeaders: drmHeaders.trim() || undefined,
       },
     ]);
   };
@@ -161,6 +230,10 @@ export default function DeployPanel() {
     setStreamUrl(d.streamUrl ?? "");
     setAutoplay(!!d.autoplay);
     setAutotrace(!!d.autotrace);
+    setDrmSystem(d.drmSystem ?? "");
+    setLicenseUrl(d.licenseUrl ?? "");
+    setCertUrl(d.certUrl ?? "");
+    setDrmHeaders(d.drmHeaders ?? "");
   };
 
   const deleteDevice = (id: string) => {
@@ -204,7 +277,7 @@ export default function DeployPanel() {
 
   const run = async (action: Action) => {
     if (action === "browser") {
-      setBrowserUrl(launchUrlFor({ streamUrl, autoplay, autotrace }));
+      setBrowserUrl(launchUrlFor(formFields));
       return;
     }
     if (running) return;
@@ -228,6 +301,7 @@ export default function DeployPanel() {
               launchUrl: launchUrlFor(d),
               deviceName,
               webosNetcast,
+              webosHosted,
               securityProfile,
             },
             ctrl,
@@ -242,9 +316,10 @@ export default function DeployPanel() {
           action,
           tvIp,
           macHost,
-          launchUrl: launchUrlFor({ streamUrl, autoplay, autotrace }),
+          launchUrl: launchUrlFor(formFields),
           deviceName,
           webosNetcast,
+          webosHosted,
           securityProfile,
         }, ctrl);
       }
@@ -413,6 +488,24 @@ export default function DeployPanel() {
                 </span>
               </label>
             )}
+            {platform === "webos" && (
+              <label className="col-span-2 flex items-start gap-2 text-[11px] leading-[1.4] text-tx2">
+                <input
+                  type="checkbox"
+                  checked={webosHosted}
+                  onChange={(e) => setWebosHosted(e.target.checked)}
+                  className="mt-[2px] h-[13px] w-[13px] flex-shrink-0 accent-ga"
+                />
+                <span>
+                  Cargar la UI desde el Mac (http) en vez de llevarla dentro de la app
+                  <span className={`block text-[10px] ${webosHosted ? "text-warn" : "text-tx3"}`}>
+                    {webosHosted
+                      ? "Sin DRM: la tele solo da EME a un origen seguro, y http://<Mac> no lo es. Los cambios de la UI llegan con recargar."
+                      : "La UI va empaquetada (file://, origen seguro → DRM OK). El Mac sigue siendo el servidor del proxy y las trazas, solo por la red local. Tras cambiar código, vuelve a hacer deploy."}
+                  </span>
+                </span>
+              </label>
+            )}
             {platform === "tizen" && (
               <div>
                 <label className="mb-[5px] block text-[11px] text-tx2">
@@ -457,9 +550,56 @@ export default function DeployPanel() {
               />
               Enviar las trazas al Mac solas, cada {AUTOTRACE_DEFAULT} s (traces/…_live.json)
             </label>
+
+            {/* DRM — baked into the launch URL, so nothing is typed on the TV */}
+            <div className="mt-3 rounded-[6px] border border-bd2 bg-sf2/50 p-[10px]">
+              <div className="mb-[6px] flex items-center gap-2">
+                <span className="text-[11px] text-tx2">DRM (opcional)</span>
+                <select
+                  className="rounded-[4px] border border-bd bg-sf2 px-[6px] py-[3px] font-mono text-[11px] text-tx1 outline-none focus:border-gb"
+                  value={drmSystem}
+                  onChange={(e) => setDrmSystem(e.target.value as DrmSystem | "")}
+                >
+                  <option value="">Sin DRM</option>
+                  {DRM_SYSTEMS.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {drmSystem && (
+                <div className="flex flex-col gap-[6px]">
+                  <input
+                    className={input}
+                    placeholder="URL de licencia (con su token, si lo lleva)"
+                    value={licenseUrl}
+                    onChange={(e) => setLicenseUrl(e.target.value)}
+                  />
+                  {drmSystem === "fairplay" && (
+                    <input
+                      className={input}
+                      placeholder="URL del certificado FairPlay"
+                      value={certUrl}
+                      onChange={(e) => setCertUrl(e.target.value)}
+                    />
+                  )}
+                  <textarea
+                    className={`${input} min-h-[46px] resize-y`}
+                    placeholder={"Cabeceras de licencia, una por línea (opcional)\nAuthorization: Bearer …"}
+                    value={drmHeaders}
+                    onChange={(e) => setDrmHeaders(e.target.value)}
+                  />
+                  <div className="text-[10px] leading-[1.4] text-warn">
+                    Va dentro de la app: si el token caduca, hay que volver a hacer deploy.
+                  </div>
+                </div>
+              )}
+            </div>
+
             {macHost && (
               <div className="mt-2 break-all font-mono text-[10px] text-tx3">
-                → {launchUrlFor({ streamUrl, autoplay, autotrace })}
+                → {launchUrlFor(formFields)}
               </div>
             )}
           </div>
@@ -553,6 +693,34 @@ export default function DeployPanel() {
                           patchDevice(d.id, { streamUrl: e.target.value || undefined })
                         }
                       />
+                      <div className="mt-[4px] flex gap-[6px]">
+                        <select
+                          className="flex-shrink-0 rounded-[4px] border border-bd bg-bg px-[5px] py-[4px] font-mono text-[10px] text-tx2 outline-none focus:border-gb"
+                          value={d.drmSystem ?? ""}
+                          onChange={(e) =>
+                            patchDevice(d.id, {
+                              drmSystem: (e.target.value as DrmSystem) || undefined,
+                            })
+                          }
+                        >
+                          <option value="">sin DRM</option>
+                          {DRM_SYSTEMS.map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.label}
+                            </option>
+                          ))}
+                        </select>
+                        {d.drmSystem && (
+                          <input
+                            className="min-w-0 flex-1 rounded-[4px] border border-bd bg-bg px-[7px] py-[4px] font-mono text-[10px] text-tx2 outline-none placeholder:text-tx3 focus:border-gb"
+                            placeholder="licencia de esta tele"
+                            value={d.licenseUrl ?? ""}
+                            onChange={(e) =>
+                              patchDevice(d.id, { licenseUrl: e.target.value || undefined })
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
                   );
                 })}

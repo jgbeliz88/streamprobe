@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { cpSync, rmSync } from "node:fs";
 import path from "node:path";
-import { androidSdkDir, hasTool, lanIp, sdbDeviceName } from "@/lib/tvTools";
+import { androidSdkDir, hasTool, lanIp, sdbDeviceName, stageWebosPackaged } from "@/lib/tvTools";
 
 // Node runtime: we shell out to the TV toolchains (ares / tizen / sdb / adb +
 // gradle) that live on this machine, and rewrite the launcher's URL on disk.
@@ -29,6 +29,12 @@ interface Body {
    * and not even a USB keyboard can type.
    */
   webosNetcast?: boolean;
+  /**
+   * webOS only: the old launcher that just redirects to http://<mac>. UI changes
+   * show up with a reload, but the TV gets no DRM there (EME needs a secure
+   * origin). Default: package the UI inside the app (file://), DRM works.
+   */
+  webosHosted?: boolean;
   securityProfile?: string; // Tizen signing profile
 }
 
@@ -46,6 +52,8 @@ interface Step {
    * them. Takes precedence over `args`.
    */
   lateArgs?: () => string[];
+  /** In-process step (no child process): `cmd` is then only its label. */
+  fn?: () => void;
 }
 
 const ROOT = process.cwd();
@@ -147,13 +155,24 @@ async function writeLauncherUrl(platform: Platform, launchUrl: string) {
   return launchUrl;
 }
 
-function steps(body: Body): Step[] {
+function steps(body: Body, launchUrl: string): Step[] {
   const { platform, action, tvIp } = body;
   if (platform === "webos") {
     const dev = body.deviceName?.trim() || "lgtv";
-    const pkg: Step[] = [
-      { cmd: "ares-package", args: ["tv-launchers/webos", "-o", "tv-launchers/dist"] },
-    ];
+    let stage = "";
+    const pkg: Step[] = body.webosHosted
+      ? [{ cmd: "ares-package", args: ["tv-launchers/webos", "-o", "tv-launchers/dist"] }]
+      : [
+          // The UI travels inside the app, so DRM works (see stageWebosPackaged).
+          { cmd: "node", args: ["scripts/tv-export.mjs"] },
+          {
+            cmd: "preparar app con la UI dentro",
+            fn: () => {
+              stage = stageWebosPackaged(ROOT, launchUrl, body.macHost);
+            },
+          },
+          { cmd: "ares-package", lateArgs: () => [stage, "-o", "tv-launchers/dist"] },
+        ];
     if (action === "package") return pkg;
     return [
       // Re-point the registered profile at the IP entered (keeps the dev key).
@@ -230,6 +249,16 @@ function steps(body: Body): Step[] {
 }
 
 function runStep(step: Step, write: (s: string) => void): Promise<number> {
+  if (step.fn) {
+    write(`\n▸ ${step.cmd}\n`);
+    try {
+      step.fn();
+      return Promise.resolve(0);
+    } catch (e: any) {
+      write(`✗ ${e?.message || e}\n`);
+      return Promise.resolve(1);
+    }
+  }
   return new Promise((resolve) => {
     const args = step.lateArgs ? step.lateArgs() : step.args ?? [];
     write(`\n$ ${step.cmd} ${args.join(" ")}\n`);
@@ -276,11 +305,16 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        const url = await writeLauncherUrl(
-          body.platform,
-          body.launchUrl?.trim() || `http://${body.macHost.trim()}`
+        const launchUrl = body.launchUrl?.trim() || `http://${body.macHost.trim()}`;
+        const packaged = body.platform === "webos" && !body.webosHosted;
+        // A packaged webOS app gets its own generated launcher (staging dir), so
+        // the tracked one is left alone.
+        const url = packaged ? launchUrl : await writeLauncherUrl(body.platform, launchUrl);
+        write(
+          packaged
+            ? `▸ App webOS con la UI dentro (DRM OK) · config → ${url}\n`
+            : `▸ Launcher ${body.platform} → ${url}\n`
         );
-        write(`▸ Launcher ${body.platform} → ${url}\n`);
         if (body.platform === "webos") {
           const trust = await writeWebosTrustLevel(!!body.webosNetcast);
           write(
@@ -290,7 +324,7 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        const list = steps(body);
+        const list = steps(body, url);
         for (const step of list) {
           const code = await runStep(step, write);
           if (code === 0) {

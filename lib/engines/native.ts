@@ -433,7 +433,7 @@ export function createNative(cb: EngineCallbacks, isAvPlayer = false): EngineCon
       // injected Origin (they 403 otherwise) — so route the manifest through the
       // rewriting proxy (rw=1), which points every child back at the proxy.
       const src = proxifyUrl(cfg.url, cfg.net);
-      const proxiedSrc = src.startsWith("/api/proxy?") ? `${src}&rw=1` : src;
+      const proxiedSrc = src.includes("/api/proxy?") ? `${src}&rw=1` : src;
       cb.onLog("drm", "FairPlay nativo activado — manifest y segmentos por el proxy (rw), licencia/cert por el proxy");
       startTracing();
       reportManifest(cfg);

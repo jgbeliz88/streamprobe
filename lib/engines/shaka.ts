@@ -155,6 +155,15 @@ function describeShakaError(err: any): string {
     // HTTP_ERROR / TIMEOUT: data[0] = uri
     const rt = REQUEST_TYPE[data[2]] ? ` ${REQUEST_TYPE[data[2]]}` : "";
     extra = `${rt}${data[0] ? ` · ${urlTail(String(data[0]))}` : ""}`;
+  } else if (code === 4012) {
+    // RESTRICTIONS_CANNOT_BE_MET: data[0] = RestrictionInfo — why no variant is
+    // playable (key statuses from the CDM, KIDs missing from the licence…).
+    const ri: any = data[0] || {};
+    const bits: string[] = [];
+    if (ri.hasAppRestrictions) bits.push("restricciones de la app");
+    if (ri.missingKeys?.length) bits.push(`KIDs sin licencia: ${ri.missingKeys.join(", ")}`);
+    if (ri.restrictedKeyStatuses?.length) bits.push(`key status: ${ri.restrictedKeyStatuses.join(", ")}`);
+    if (bits.length) extra = ` — ${bits.join(" · ")}`;
   } else if (code >= 6000 && code < 7000) {
     // DRM errors wrap the real cause in data[0]. Often it's another Shaka error
     // (e.g. the license/cert request failing 1001/1002) — recurse to show its
@@ -684,7 +693,7 @@ export function createShaka(cb: EngineCallbacks): EngineController {
     let loadUrl = cfg.url;
     if (cfg.drm.enabled && cfg.drm.system === "fairplay" && useProxy) {
       const p = proxifyUrl(cfg.url, cfg.net);
-      loadUrl = p.startsWith("/api/proxy?") ? `${p}&rw=1` : p;
+      loadUrl = p.includes("/api/proxy?") ? `${p}&rw=1` : p;
     }
 
     cb.onLog("info", `Loading manifest: ${cfg.url}${mime ? ` (${mime})` : ""}`);
@@ -692,6 +701,11 @@ export function createShaka(cb: EngineCallbacks): EngineController {
       await player.load(loadUrl, null, mime);
       const tracks = player.getVariantTracks();
       cb.onLog("info", `Manifest loaded — ${tracks.length} variants`);
+      // The key system Shaka actually picked (the manifest may signal several).
+      if (cfg.drm.enabled) {
+        const ks = player.keySystem?.() || "";
+        cb.onLog("drm", `DRM activo: ${ks || "ninguno (¿contenido en claro?)"}`);
+      }
       reportTracks();
 
       // With ABR off, pin the highest-bandwidth variant and re-assert it on

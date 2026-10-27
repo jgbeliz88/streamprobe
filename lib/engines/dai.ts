@@ -8,6 +8,7 @@ import { shakaDrmConfig } from "./drm";
 import { setupFairPlay } from "./native";
 import { describeToken, getTestToken, tokenMinutesLeft } from "./testToken";
 import type { EngineCallbacks, EngineController, LoadConfig } from "./types";
+import { apiUrl } from "@/lib/apiBase";
 
 // Google IMA DAI SDK — loaded from Google's CDN (not bundleable via npm).
 const IMA_SDK = "https://imasdk.googleapis.com/js/sdkloader/ima3_dai.js";
@@ -150,7 +151,7 @@ export function createDai(cb: EngineCallbacks): EngineController {
       // an out-of-band fetch breaks the stream). Same-origin, no upstream traffic.
       if (!manifestPollBusy) {
         manifestPollBusy = true;
-        fetch(`/api/proxy?manifests=${lastManifestSeq}`)
+        fetch(apiUrl(`/api/proxy?manifests=${lastManifestSeq}`))
           .then((r) => r.json())
           .then((d: any) => {
             for (const m of d?.items || []) {
@@ -585,13 +586,13 @@ export function createDai(cb: EngineCallbacks): EngineController {
         if (!cfg.drm.certUrl) cb.onLog("warn", "FairPlay: falta la URL de certificado (obligatoria)");
         setupFairPlay(video, cfg, cb);
         const src = proxifyUrl(url, cfg.net);
-        const proxiedSrc = src.startsWith("/api/proxy?") ? `${src}&rw=1` : src;
+        const proxiedSrc = src.includes("/api/proxy?") ? `${src}&rw=1` : src;
         // Report what is ACTUALLY happening: media only goes through the rewriting
         // proxy when header overrides are set (proxifyUrl is a no-op otherwise);
         // the licence/cert always do (proxifyAlways, to dodge the CORS preflight).
         cb.onLog(
           "drm",
-          proxiedSrc.startsWith("/api/proxy?")
+          proxiedSrc.includes("/api/proxy?")
             ? "FairPlay nativo (DAI) — manifest/segmentos por el proxy (rw); licencia/cert por el proxy"
             : "FairPlay nativo (DAI) — manifest/segmentos DIRECTOS al CDN (sin overrides de cabeceras); licencia/cert por el proxy"
         );

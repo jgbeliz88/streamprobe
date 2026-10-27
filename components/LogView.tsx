@@ -19,6 +19,7 @@ import type {
   NetworkEntry,
   NetworkKind,
 } from "@/lib/engines/types";
+import { apiUrl } from "@/lib/apiBase";
 
 const TYPE_COLOR: Record<LogType, string> = {
   info: "text-tx2",
@@ -66,7 +67,7 @@ function NetDetail({ entry, net }: { entry: NetworkEntry; net: NetOverrides }) {
   async function loadBody() {
     setBody({ loading: true });
     try {
-      const peek = await fetch(`/api/proxy?peek=${encodeURIComponent(entry.url)}`).then((r) =>
+      const peek = await fetch(apiUrl(`/api/proxy?peek=${encodeURIComponent(entry.url)}`)).then((r) =>
         r.json()
       );
       if (peek?.found) {

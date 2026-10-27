@@ -1,5 +1,5 @@
 import { ENGINES } from "./engines/registry";
-import type { EngineId, PanelConfig } from "./engines/types";
+import type { DrmSystem, EngineId, PanelConfig } from "./engines/types";
 
 /**
  * Config carried in the query string, so a launcher (or a bookmark) can open
@@ -7,6 +7,7 @@ import type { EngineId, PanelConfig } from "./engines/types";
  * server with a different stream each.
  *
  *   ?url=…&engine=shaka&version=4.13.25&origin=…&referer=…&ua=…&autoplay=1&autotrace=30
+ *   &drm=playready&license=…&cert=…&drmHeaders={"Authorization":"…"}
  */
 export interface DeepLink {
   config: PanelConfig;
@@ -100,6 +101,18 @@ export function applyDeepLink(base: PanelConfig, search: string): DeepLink {
     cfg.drm.enabled = true;
     cfg.drm.system = drmSystem;
   }
+  const certUrl = q.get("cert");
+  if (took(certUrl) && certUrl) cfg.drm.certUrl = certUrl;
+  // License-request headers as a JSON object. Negative ids keep them clear of
+  // the ones the DRM panel hands out when a header is added by hand.
+  const drmHeaders = parseHeaders(q.get("drmHeaders"));
+  if (took(drmHeaders) && drmHeaders) {
+    cfg.drm.headers = Object.entries(drmHeaders).map(([key, value], i) => ({
+      id: -(i + 1),
+      key,
+      value,
+    }));
+  }
 
   const autoplay = BOOL(q.get("autoplay")) ?? false;
   if (q.get("autoplay") != null) present = true;
@@ -108,6 +121,20 @@ export function applyDeepLink(base: PanelConfig, search: string): DeepLink {
   if (q.get("autotrace") != null) present = true;
 
   return { config: cfg, autoplay, autotrace, present };
+}
+
+/** `{"Authorization":"…"}` → a string map; anything unparseable → null. */
+function parseHeaders(v: string | null): Record<string, string> | null {
+  if (!v) return null;
+  try {
+    const o = JSON.parse(v);
+    if (!o || typeof o !== "object" || Array.isArray(o)) return null;
+    const out: Record<string, string> = {};
+    for (const [k, val] of Object.entries(o)) if (k.trim()) out[k.trim()] = String(val);
+    return Object.keys(out).length ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Auto-trace intervals the UI offers, in seconds. */
@@ -121,14 +148,37 @@ function parseAutotrace(v: string | null): number {
   return 30;
 }
 
+/** DRM to preload on a device: no system or no license URL = none. */
+export interface LaunchDrm {
+  system?: DrmSystem;
+  licenseUrl?: string;
+  certUrl?: string;
+  headers?: Record<string, string>;
+}
+
 /** Build a launch URL for a device: the dev server plus the config to preload. */
 export function buildLaunchUrl(
   macHost: string,
-  opts: { streamUrl?: string; engine?: EngineId; autoplay?: boolean; autotrace?: number } = {}
+  opts: {
+    streamUrl?: string;
+    engine?: EngineId;
+    autoplay?: boolean;
+    autotrace?: number;
+    drm?: LaunchDrm;
+  } = {}
 ): string {
   const q = new URLSearchParams();
   if (opts.streamUrl?.trim()) q.set("url", opts.streamUrl.trim());
   if (opts.engine) q.set("engine", opts.engine);
+  const drm = opts.drm;
+  if (drm?.system && drm.licenseUrl?.trim()) {
+    q.set("drm", drm.system);
+    q.set("license", drm.licenseUrl.trim());
+    if (drm.certUrl?.trim()) q.set("cert", drm.certUrl.trim());
+    if (drm.headers && Object.keys(drm.headers).length) {
+      q.set("drmHeaders", JSON.stringify(drm.headers));
+    }
+  }
   if (opts.autoplay) q.set("autoplay", "1");
   if (opts.autotrace) q.set("autotrace", String(opts.autotrace));
   const qs = q.toString();

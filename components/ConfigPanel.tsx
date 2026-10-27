@@ -14,6 +14,7 @@ import type {
   PanelConfig,
   UiDrmConfig,
 } from "@/lib/engines/types";
+import { apiUrl } from "@/lib/apiBase";
 
 interface Props {
   panel: "A" | "B";
@@ -95,7 +96,7 @@ export default function ConfigPanel({
         if (k) extra[k] = h.value.trim();
       }
       if (Object.keys(extra).length) qs.set("h", JSON.stringify(extra));
-      const res = await fetch(`/api/proxy?${qs.toString()}`);
+      const res = await fetch(apiUrl(`/api/proxy?${qs.toString()}`));
       const j = await res.json();
       setVerify(j.injected || {});
     } catch (e: any) {
